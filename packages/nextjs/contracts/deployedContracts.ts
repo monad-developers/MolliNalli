@@ -5,6 +5,322 @@
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
+  20143: {
+    MolliNalli: {
+      address: "0x6a3afa536e36f2c6beaaee8156e3b1a1dd11abf1",
+      abi: [
+        {
+          type: "function",
+          name: "CARD_MASK",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "MAX_ACTION",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "MAX_ACTION_PER_ROUND",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "MAX_PLAYERS",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "action",
+          inputs: [
+            {
+              name: "pressed",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "getPlayer",
+          inputs: [
+            {
+              name: "player",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              internalType: "struct MolliNalli.Player",
+              components: [
+                {
+                  name: "isReady",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
+                  name: "score",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "actionCount",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "turn",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "startTime",
+                  type: "uint48",
+                  internalType: "uint48",
+                },
+                {
+                  name: "seed",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+              ],
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "joinGame",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "players",
+          inputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "isReady",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "score",
+              type: "uint8",
+              internalType: "uint8",
+            },
+            {
+              name: "actionCount",
+              type: "uint8",
+              internalType: "uint8",
+            },
+            {
+              name: "turn",
+              type: "uint8",
+              internalType: "uint8",
+            },
+            {
+              name: "startTime",
+              type: "uint48",
+              internalType: "uint48",
+            },
+            {
+              name: "seed",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "stage",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "startGame",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "event",
+          name: "GameEnded",
+          inputs: [
+            {
+              name: "players",
+              type: "tuple[]",
+              indexed: false,
+              internalType: "struct MolliNalli.Player[]",
+              components: [
+                {
+                  name: "isReady",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
+                  name: "score",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "actionCount",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "turn",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
+                  name: "startTime",
+                  type: "uint48",
+                  internalType: "uint48",
+                },
+                {
+                  name: "seed",
+                  type: "uint256",
+                  internalType: "uint256",
+                },
+              ],
+            },
+            {
+              name: "endTime",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "GameStarted",
+          inputs: [
+            {
+              name: "players",
+              type: "address[]",
+              indexed: false,
+              internalType: "address[]",
+            },
+            {
+              name: "seed",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "UpdateSeed",
+          inputs: [
+            {
+              name: "player",
+              type: "address",
+              indexed: false,
+              internalType: "address",
+            },
+            {
+              name: "seed",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "error",
+          name: "ErrorEnded",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "ErrorIsFull",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "ErrorJoined",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "ErrorNotPlayer",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "ErrorNotPlaying",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "ErrorStarted",
+          inputs: [],
+        },
+      ],
+      inheritedFunctions: {},
+      deploymentFile: "run-1737104205.json",
+      deploymentScript: "Deploy.s.sol",
+    },
+  },
   31337: {
     MolliNalli: {
       address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
