@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {MolliNalli, ErrorStarted, ErrorIsFull, ErrorNotAdmin, ErrorNotPlayer, ErrorJoined, ErrorEnded, ErrorNotPlaying, GameStage} from "../src/MolliNalli.sol";
+import {MolliNalli, ErrorStarted, ErrorIsFull, ErrorNotAdmin, ErrorNotPlayer, ErrorJoined, ErrorEnded, ErrorNotPlaying, GameStage} from "../contracts/MolliNalli.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 contract MolliNalliTest is Test {
@@ -120,7 +120,7 @@ contract MolliNalliTest is Test {
         game.action(true); // First action
         
         // Get player score
-        (bool isReady, uint8 score, uint8 actionCount, uint48 startTime, uint256 seed) = game.players(player1);
+        (bool isReady, uint8 score,,,,) = game.players(player1);
         assertTrue(isReady);
         // Score should be 0 or 1 depending on the random seed
         assertTrue(score <= 1);

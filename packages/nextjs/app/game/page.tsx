@@ -1,34 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CardType, GameStage, MNCard } from "../type";
+import { keccak256, toHex } from "viem";
 import { useAccount } from "wagmi";
+import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth/index";
 import { notification } from "~~/utils/scaffold-eth";
 
-enum GameStage {
-  NOT_START,
-  PLAYING,
-  ENDED,
-}
-
-enum CardType {
-  None,
-  Chog,
-  Moyaki,
-  Molandak,
-}
 const getThreeCards = (seed: bigint, startIndex: number) => {
-  const CARD_COUNT = 3;
   const TYPE_MASK = BigInt(0b11);
   const BITS_PER_TYPE = 2n;
+  const ANIMAL_COUNT = 4n;
 
-  let value = seed >> (BigInt(startIndex) * BITS_PER_TYPE);
+  let value = seed >> (BigInt(startIndex) * BITS_PER_TYPE * ANIMAL_COUNT);
   const cards = [];
 
-  for (let c = 0; c < CARD_COUNT; c++) {
+  for (let c = 0; c < 3; c++) {
     const types: CardType[] = [0, 0, 0, 0];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const index = value & TYPE_MASK;
       types[i] = Number(index) as CardType;
       value = value >> BITS_PER_TYPE;
@@ -43,8 +34,8 @@ const getThreeCards = (seed: bigint, startIndex: number) => {
 const GamePage = () => {
   const { address } = useAccount();
   const [gameStage, setGameStage] = useState<GameStage>(GameStage.NOT_START);
-  const [currentCards, setCurrentCards] = useState<CardType[]>([]);
-  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; turn: number } | null>(null);
+  const [currentCards, setCurrentCards] = useState<MNCard[]>([]);
+  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; turn: number; actionCount: number } | null>(null);
 
   // Contract reads
   const { data: stage } = useScaffoldReadContract({
@@ -52,7 +43,7 @@ const GamePage = () => {
     functionName: "stage",
   });
 
-  const { data: playerData } = useScaffoldReadContract({
+  const { data: playerData, refetch: refetchPlayer } = useScaffoldReadContract({
     contractName: "MolliNalli",
     functionName: "getPlayer",
     args: [address],
@@ -60,15 +51,25 @@ const GamePage = () => {
 
   useEffect(() => {
     if (!playerData) return;
-    if (!seedInfo) {
-      //first set up
-      setSeedInfo({ seed: playerData.seed, turn: 0 });
-    } else {
-      if (playerData.seed !== seedInfo.seed) {
-        setSeedInfo({ seed: playerData.seed, turn: 0 });
-      }
+    if (!playerData.isReady || playerData.seed == 0n) {
+      return;
     }
-  }, [playerData, seedInfo]);
+
+    setSeedInfo(seedInfo => {
+      if (!seedInfo) {
+        //only first set up
+        return { seed: playerData.seed, turn: playerData.turn, actionCount: playerData.actionCount };
+      }
+
+      return seedInfo;
+    });
+  }, [playerData]);
+
+  useEffect(() => {
+    if (!seedInfo) return;
+    const cards = getThreeCards(seedInfo.seed, seedInfo.turn);
+    setCurrentCards(cards);
+  }, [seedInfo]);
 
   // Contract writes
   const { writeContractAsync } = useScaffoldWriteContract({
@@ -92,32 +93,28 @@ const GamePage = () => {
       functionName: "action",
       args: [bell],
     });
+    setSeedInfo(seedInfo => {
+      if (!seedInfo) return null;
+      const newInfo = { ...seedInfo, turn: seedInfo.turn + 1, actionCount: seedInfo.actionCount + 1 };
+      if (newInfo.actionCount % 6 == 0) {
+        newInfo.seed = BigInt(keccak256(toHex(seedInfo.seed)));
+        newInfo.turn = 0;
+      }
+      return newInfo;
+    });
   };
 
   useEffect(() => {
     if (stage !== undefined) {
       setGameStage(stage as GameStage);
+      refetchPlayer();
     }
-  }, [stage]);
-
-  useEffect(() => {
-    if (playerData?.seed) {
-      const seed = playerData.seed;
-      const cards: CardType[] = [];
-      let value = seed;
-      for (let i = 0; i < 12; i++) {
-        const cardType = Number(value & BigInt(3));
-        cards.push(cardType as CardType);
-        value = value >> BigInt(2);
-      }
-      setCurrentCards(cards);
-    }
-  }, [playerData?.seed]);
+  }, [stage, refetchPlayer]);
 
   const handleJoinGame = async () => {
     try {
       await joinGame();
-      notification.success("Successfully joined the game!");
+      notification.success("Successfully joined the game!", { position: "top-left" });
     } catch (error) {
       notification.error("Failed to join game");
       console.error(error);
@@ -127,7 +124,7 @@ const GamePage = () => {
   const handleStartGame = async () => {
     try {
       await startGame();
-      notification.success("Game started!");
+      notification.success("Game started!", { position: "top-left" });
     } catch (error) {
       notification.error("Failed to start game");
       console.error(error);
@@ -137,27 +134,13 @@ const GamePage = () => {
   const handleAction = async (pressed: boolean) => {
     try {
       await action(pressed);
-      notification.success(pressed ? "Bell pressed!" : "Cards drawn!");
+      notification.success(pressed ? "Bell pressed!" : "Pass!", { position: "top-left" });
     } catch (error) {
       notification.error("Action failed");
       console.error(error);
     }
   };
 
-  const getCardColor = (type: CardType) => {
-    switch (type) {
-      case CardType.Chog:
-        return "bg-red-500";
-      case CardType.Moyaki:
-        return "bg-blue-500";
-      case CardType.Molandak:
-        return "bg-green-500";
-      default:
-        return "bg-gray-300";
-    }
-  };
-
-  console.log(getThreeCards(playerData?.seed ?? 0n, 0));
   return (
     <div className="flex flex-col gap-y-6 py-8 px-4 lg:px-8">
       <div className="flex flex-col items-center gap-4">
@@ -193,21 +176,16 @@ const GamePage = () => {
             <div className="flex flex-col gap-4">
               <div className="flex justify-center gap-4">
                 <button className="btn btn-primary" onClick={() => handleAction(false)}>
-                  Draw Cards
+                  Pass
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleAction(true)}>
-                  Ring Bell!
+                  Ring Bell
                 </button>
               </div>
               {/* Cards Display */}
               <div className="grid grid-cols-4 gap-4">
-                {currentCards.slice(0, 12).map((cardType, index) => (
-                  <div
-                    key={index}
-                    className={`w-24 h-32 rounded-lg ${getCardColor(cardType)} flex items-center justify-center text-white font-bold shadow-lg transform hover:scale-105 transition-transform`}
-                  >
-                    {CardType[cardType]}
-                  </div>
+                {currentCards.map((card, index) => (
+                  <Card elements={card} key={index} />
                 ))}
               </div>
             </div>
@@ -219,9 +197,9 @@ const GamePage = () => {
           <div className="card w-96 bg-base-100 shadow-xl">
             <div className="card-body">
               <h2 className="card-title">Player Info</h2>
-              <p>
+              <div>
                 Address: <Address address={address} />
-              </p>
+              </div>
               <p>Score: {Number(playerData.score)}</p>
               <p>Actions: {Number(playerData.actionCount)}</p>
             </div>

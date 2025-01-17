@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     MolliNalli: {
-      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
+      address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
       abi: [
         {
           type: "function",
@@ -106,6 +106,11 @@ const deployedContracts = {
                   internalType: "uint8",
                 },
                 {
+                  name: "turn",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
                   name: "startTime",
                   type: "uint48",
                   internalType: "uint48",
@@ -150,6 +155,11 @@ const deployedContracts = {
             },
             {
               name: "actionCount",
+              type: "uint8",
+              internalType: "uint8",
+            },
+            {
+              name: "turn",
               type: "uint8",
               internalType: "uint8",
             },
@@ -212,6 +222,11 @@ const deployedContracts = {
                   internalType: "uint8",
                 },
                 {
+                  name: "turn",
+                  type: "uint8",
+                  internalType: "uint8",
+                },
+                {
                   name: "startTime",
                   type: "uint48",
                   internalType: "uint48",
@@ -241,6 +256,25 @@ const deployedContracts = {
               type: "address[]",
               indexed: false,
               internalType: "address[]",
+            },
+            {
+              name: "seed",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "UpdateSeed",
+          inputs: [
+            {
+              name: "player",
+              type: "address",
+              indexed: false,
+              internalType: "address",
             },
             {
               name: "seed",
@@ -283,7 +317,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deploymentFile: "run-1737029532.json",
+      deploymentFile: "run-1737098806.json",
       deploymentScript: "Deploy.s.sol",
     },
   },

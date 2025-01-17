@@ -26,6 +26,7 @@ export const wagmiConfig = createConfig({
       rpcFallbacks = isUsingDefaultKey ? [http(), http(alchemyHttpUrl)] : [http(alchemyHttpUrl), http()];
     }
 
+    console.log("id", chain.id, (hardhat as Chain).id);
     return createClient({
       chain,
       transport: fallback(rpcFallbacks),
@@ -33,7 +34,7 @@ export const wagmiConfig = createConfig({
         ? {
             pollingInterval: scaffoldConfig.pollingInterval,
           }
-        : {}),
+        : { pollingInterval: scaffoldConfig.pollingInterval }),
     });
   },
 });

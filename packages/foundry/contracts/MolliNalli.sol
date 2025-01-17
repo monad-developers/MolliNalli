@@ -41,6 +41,7 @@ contract MolliNalli {
         bool isReady;
         uint8 score;
         uint8 actionCount;
+        uint8 turn;
         uint48 startTime;
         uint256 seed;
     }
@@ -86,10 +87,11 @@ contract MolliNalli {
         }
 
         uint256 seed = player.seed;
-        bool win = seed.checkThreeCardIsBell() == pressed;
+        bool win = seed.checkThreeCardIsBell(player.turn) == pressed;
 
         player.score += win ? 1 : 0;
         player.actionCount = ++actionCount;
+        player.turn += 1;
         
         if(actionCount == MAX_ACTION){
             stage = uint8(GameStage.ENDED);
@@ -99,6 +101,7 @@ contract MolliNalli {
         if(actionCount % MAX_ACTION_PER_ROUND == 0){
             // 更新seed
             player.seed = uint256(keccak256(abi.encode(seed)));
+            player.turn = 0;
             emit UpdateSeed(msg.sender, player.seed);
         }
     }
@@ -113,8 +116,11 @@ contract MolliNalli {
             address playerAddr = playersAddr[i];
             Player memory player = players[playerAddr];
             playersTemp[i] = player;
+            
+            players[playerAddr].isReady = false;
         }
         emit GameEnded(playersTemp, block.timestamp);
+        stage = uint8(GameStage.NOT_START);
     }
 
     /**
@@ -130,7 +136,7 @@ contract MolliNalli {
         if (players[msg.sender].isReady) {
             revert ErrorJoined();
         }
-        players[msg.sender] = Player({score: 0, seed: 0, isReady: true, actionCount: 0, startTime: 0});
+        players[msg.sender] = Player({score: 0, seed: 0, isReady: true, actionCount: 0, startTime: 0,turn:0});
         playersAddr.push(msg.sender);
     }
 
@@ -153,10 +159,12 @@ contract MolliNalli {
         uint256 seed = generateSeed();
 
         for (uint256 i = 0; i < playersAddr.length; ++i) {
-            address player = playersAddr[i];
+            address playerAddr = playersAddr[i];
 
-            players[player].seed = seed;
-            players[player].startTime = uint48(block.timestamp);
+            Player storage player = players[playerAddr];
+            player.seed = seed;
+            player.startTime = uint48(block.timestamp);
+            player.isReady = true;
         }
 
         emit GameStarted(playersAddr, seed);

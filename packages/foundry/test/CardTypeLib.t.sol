@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../src/lib/CardTypeLib.sol";
+import "../contracts/MolliNalli.sol";
 
 contract CardTypeLibTest is Test {
     using CardTypeLib for uint256;
@@ -54,15 +54,43 @@ contract CardTypeLibTest is Test {
 
     function testCheckThreeCardIsBell() public view {
         // Test cases where it should return true
-        require(TEST_VALUE_3.checkThreeCardIsBell(), "Should be true: has exactly 4 type3");
-        require(TEST_VALUE_6.checkThreeCardIsBell(), "Should be true: has 4 type1 (and 4 type2)");
-        require(TEST_VALUE_7.checkThreeCardIsBell(), "Should be true: has 4 type3 (and 2 of others)");
+        require(TEST_VALUE_3.checkThreeCardIsBell(0), "Should be true: has exactly 4 type3");
+        require(TEST_VALUE_6.checkThreeCardIsBell(0), "Should be true: has 4 type1 (and 4 type2)");
+        require(TEST_VALUE_7.checkThreeCardIsBell(0), "Should be true: has 4 type3 (and 2 of others)");
 
         // Test cases where it should return false
-        require(!TEST_VALUE_1.checkThreeCardIsBell(), "Should be false: has 6 type1");
-        require(!TEST_VALUE_2.checkThreeCardIsBell(), "Should be false: has 5 type2");
-        require(!TEST_VALUE_4.checkThreeCardIsBell(), "Should be false: has 6 type1");
-        require(!TEST_VALUE_5.checkThreeCardIsBell(), "Should be false: all zeros");
-        require(!TEST_VALUE_8.checkThreeCardIsBell(), "Should be false: has 3 type1, 3 type2, 2 type3");
+        require(!TEST_VALUE_1.checkThreeCardIsBell(0), "Should be false: has 6 type1");
+        require(!TEST_VALUE_2.checkThreeCardIsBell(0), "Should be false: has 5 type2");
+        require(!TEST_VALUE_4.checkThreeCardIsBell(0), "Should be false: has 6 type1");
+        require(!TEST_VALUE_5.checkThreeCardIsBell(0), "Should be false: all zeros");
+        require(!TEST_VALUE_8.checkThreeCardIsBell(0), "Should be false: has 3 type1, 3 type2, 2 type3");
+    }
+    
+    function testMultiRun() public view {
+        // Create a sequence of 8 cards where each card has a unique value
+        // Card values: 1,2,3,4,5,6,7,8 (each in 2-digit hex format)
+        uint256 cards = 0x0807060504030201;
+        
+        // Test multiple turns
+        // Turn 0: Cards 1,2,3
+        for(uint8 i = 0; i < 6; i++) {
+            cards.checkThreeCardIsBell(i);
+        }
+        // require(cards.checkThreeCardIsBell(0), "Turn 0 should check cards 1,2,3");
+        
+        // // Turn 1: Cards 2,3,4
+        // require(cards.checkThreeCardIsBell(1), "Turn 1 should check cards 2,3,4");
+        
+        // // Turn 2: Cards 3,4,5
+        // require(cards.checkThreeCardIsBell(2), "Turn 2 should check cards 3,4,5");
+        
+        // // Turn 3: Cards 4,5,6
+        // require(cards.checkThreeCardIsBell(3), "Turn 3 should check cards 4,5,6");
+        
+        // // Turn 4: Cards 5,6,7
+        // require(cards.checkThreeCardIsBell(4), "Turn 4 should check cards 5,6,7");
+        
+        // // Turn 5: Cards 6,7,8
+        // require(cards.checkThreeCardIsBell(5), "Turn 5 should check cards 6,7,8");
     }
 }
