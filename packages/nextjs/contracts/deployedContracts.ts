@@ -96,6 +96,11 @@ const deployedContracts = {
                   internalType: "bool",
                 },
                 {
+                  name: "out",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
                   name: "score",
                   type: "uint8",
                   internalType: "uint8",
@@ -145,6 +150,11 @@ const deployedContracts = {
           outputs: [
             {
               name: "isReady",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "out",
               type: "bool",
               internalType: "bool",
             },
@@ -201,13 +211,24 @@ const deployedContracts = {
           name: "GameEnded",
           inputs: [
             {
-              name: "players",
-              type: "tuple[]",
+              name: "playerAddr",
+              type: "address",
               indexed: false,
-              internalType: "struct MolliNalli.Player[]",
+              internalType: "address",
+            },
+            {
+              name: "player",
+              type: "tuple",
+              indexed: false,
+              internalType: "struct MolliNalli.Player",
               components: [
                 {
                   name: "isReady",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
+                  name: "out",
                   type: "bool",
                   internalType: "bool",
                 },
@@ -312,6 +333,11 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "ErrorOutPlayer",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "ErrorStarted",
           inputs: [],
         },
@@ -323,7 +349,7 @@ const deployedContracts = {
   },
   31337: {
     MolliNalli: {
-      address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
+      address: "0x574ae67a6e45e1bf2098ab2e142eb9d5ca686bd0",
       abi: [
         {
           type: "function",
@@ -412,6 +438,11 @@ const deployedContracts = {
                   internalType: "bool",
                 },
                 {
+                  name: "out",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
                   name: "score",
                   type: "uint8",
                   internalType: "uint8",
@@ -461,6 +492,11 @@ const deployedContracts = {
           outputs: [
             {
               name: "isReady",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "out",
               type: "bool",
               internalType: "bool",
             },
@@ -517,13 +553,24 @@ const deployedContracts = {
           name: "GameEnded",
           inputs: [
             {
-              name: "players",
-              type: "tuple[]",
+              name: "playerAddr",
+              type: "address",
               indexed: false,
-              internalType: "struct MolliNalli.Player[]",
+              internalType: "address",
+            },
+            {
+              name: "player",
+              type: "tuple",
+              indexed: false,
+              internalType: "struct MolliNalli.Player",
               components: [
                 {
                   name: "isReady",
+                  type: "bool",
+                  internalType: "bool",
+                },
+                {
+                  name: "out",
                   type: "bool",
                   internalType: "bool",
                 },
@@ -628,12 +675,17 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "ErrorOutPlayer",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "ErrorStarted",
           inputs: [],
         },
       ],
       inheritedFunctions: {},
-      deploymentFile: "run-1737098806.json",
+      deploymentFile: "run-1737429542.json",
       deploymentScript: "Deploy.s.sol",
     },
   },

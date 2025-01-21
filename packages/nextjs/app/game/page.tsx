@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CardType, GameStage, MNCard } from "../type";
+import { CardType, EndInfo, GameStage, MNCard } from "../type";
 import { keccak256, toHex } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContracts, useWatchContractEvent } from "wagmi";
 import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth/index";
-import { notification } from "~~/utils/scaffold-eth";
+import { useEndInfo } from "~~/hooks/game/useEndInfo";
+import {
+  useDeployedContractInfo,
+  useScaffoldReadContract,
+  useScaffoldWatchContractEvent,
+  useScaffoldWriteContract,
+  useSelectedNetwork,
+} from "~~/hooks/scaffold-eth/index";
+import { AllowedChainIds, notification } from "~~/utils/scaffold-eth";
 
 const getThreeCards = (seed: bigint, startIndex: number) => {
   const TYPE_MASK = BigInt(0b11);
@@ -33,11 +40,50 @@ const getThreeCards = (seed: bigint, startIndex: number) => {
 
 const GamePage = () => {
   const { address } = useAccount();
+  const selectedNetwork = useSelectedNetwork();
+  const { data: deployedContract } = useDeployedContractInfo({
+    contractName: "MolliNalli",
+    chainId: selectedNetwork.id as AllowedChainIds,
+  });
+
+  const { data } = useReadContracts({
+    contracts: [
+      {
+        ...deployedContract,
+        functionName: "MAX_ACTION",
+      },
+      {
+        ...deployedContract,
+        functionName: "MAX_ACTION_PER_ROUND",
+      },
+    ],
+  });
+
+  const [maxAction, maxActionPerRound] = (data as unknown as [number, number]) || [];
+
+  if (!address) {
+    return <>请连接钱包</>;
+  }
+  return <GamePageInner address={address} maxAction={maxAction} maxActionPerRound={maxActionPerRound} />;
+};
+
+const GamePageInner = ({
+  address,
+  maxAction,
+  maxActionPerRound,
+}: {
+  address: string;
+  maxAction: number;
+  maxActionPerRound: number;
+}) => {
   const [gameStage, setGameStage] = useState<GameStage>(GameStage.NOT_START);
   const [currentCards, setCurrentCards] = useState<MNCard[]>([]);
   const [seedInfo, setSeedInfo] = useState<{ seed: bigint; turn: number; actionCount: number } | null>(null);
+  // 当主动达到24action时就会进入等待结束状态
+  const [showEndInfo, setShowEndInfo] = useState(false);
+  // 自动更新结束信息
+  const [endInfo, setEndInfo] = useEndInfo();
 
-  // Contract reads
   const { data: stage } = useScaffoldReadContract({
     contractName: "MolliNalli",
     functionName: "stage",
@@ -50,6 +96,8 @@ const GamePage = () => {
   });
 
   useEffect(() => {
+    // 两种情况，从0开始的设定
+    // 刷新页面时断线冲连的情况
     if (!playerData) return;
     if (!playerData.isReady || playerData.seed == 0n) {
       return;
@@ -57,7 +105,16 @@ const GamePage = () => {
 
     setSeedInfo(seedInfo => {
       if (!seedInfo) {
+        console.log(playerData);
         //only first set up
+        if (playerData.out) {
+          setShowEndInfo(true);
+          setEndInfo({
+            address: address,
+            user: playerData,
+            timestamp: 0n,
+          });
+        }
         return { seed: playerData.seed, turn: playerData.turn, actionCount: playerData.actionCount };
       }
 
@@ -72,24 +129,24 @@ const GamePage = () => {
   }, [seedInfo]);
 
   // Contract writes
-  const { writeContractAsync } = useScaffoldWriteContract({
+  const { writeContract, writeContractAsync } = useScaffoldWriteContract({
     contractName: "MolliNalli",
   });
 
   const joinGame = async () => {
-    await writeContractAsync({
+    writeContractAsync({
       functionName: "joinGame",
     });
   };
 
   const startGame = async () => {
-    await writeContractAsync({
+    writeContractAsync({
       functionName: "startGame",
     });
   };
 
   const action = async (bell: boolean) => {
-    await writeContractAsync({
+    writeContract({
       functionName: "action",
       args: [bell],
     });
@@ -99,6 +156,10 @@ const GamePage = () => {
       if (newInfo.actionCount % 6 == 0) {
         newInfo.seed = BigInt(keccak256(toHex(seedInfo.seed)));
         newInfo.turn = 0;
+      }
+
+      if (newInfo.actionCount === maxActionPerRound) {
+        setShowEndInfo(true);
       }
       return newInfo;
     });
@@ -162,33 +223,39 @@ const GamePage = () => {
 
         {/* Game Actions */}
         <div className="flex gap-4">
-          {gameStage === GameStage.NOT_START && !playerData?.isReady && (
-            <button className="btn btn-primary" onClick={handleJoinGame}>
-              Join Game
-            </button>
-          )}
-          {gameStage === GameStage.NOT_START && playerData?.isReady && (
-            <button className="btn btn-primary" onClick={handleStartGame}>
-              Start Game
-            </button>
-          )}
-          {gameStage === GameStage.PLAYING && (
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-center gap-4">
-                <button className="btn btn-primary" onClick={() => handleAction(false)}>
-                  Pass
+          {showEndInfo ? (
+            <EndInfoPanel endInfo={endInfo} />
+          ) : (
+            <>
+              {gameStage === GameStage.NOT_START && !playerData?.isReady && (
+                <button className="btn btn-primary" onClick={handleJoinGame}>
+                  Join Game
                 </button>
-                <button className="btn btn-secondary" onClick={() => handleAction(true)}>
-                  Ring Bell
+              )}
+              {gameStage === GameStage.NOT_START && playerData?.isReady && (
+                <button className="btn btn-primary" onClick={handleStartGame}>
+                  Start Game
                 </button>
-              </div>
-              {/* Cards Display */}
-              <div className="grid grid-cols-4 gap-4">
-                {currentCards.map((card, index) => (
-                  <Card elements={card} key={index} />
-                ))}
-              </div>
-            </div>
+              )}
+              {gameStage === GameStage.PLAYING && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-center gap-4">
+                    <button className="btn btn-primary" onClick={() => handleAction(false)}>
+                      Pass
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => handleAction(true)}>
+                      Ring Bell
+                    </button>
+                  </div>
+                  {/* Cards Display */}
+                  <div className="grid grid-cols-4 gap-4">
+                    {currentCards.map((card, index) => (
+                      <Card elements={card} key={index} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -205,6 +272,21 @@ const GamePage = () => {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+const EndInfoPanel = ({ endInfo }: { endInfo?: EndInfo }) => {
+  if (!endInfo) {
+    return <>等待结果中...</>;
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <span>Address: {endInfo.address}</span>
+        <span>Score: {Number(endInfo.user.score)}</span>
+        <span>Actions: {Number(endInfo.user.actionCount)}</span>
       </div>
     </div>
   );

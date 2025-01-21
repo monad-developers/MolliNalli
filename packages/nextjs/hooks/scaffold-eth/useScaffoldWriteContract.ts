@@ -15,7 +15,7 @@ import {
   UseScaffoldWriteConfig,
 } from "~~/utils/scaffold-eth/contract";
 
-type ScaffoldWriteContractReturnType<TContractName extends ContractName> = Omit<
+export type ScaffoldWriteContractReturnType<TContractName extends ContractName> = Omit<
   ReturnType<typeof useWriteContract>,
   "writeContract" | "writeContractAsync"
 > & {
@@ -51,7 +51,12 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
  * @param writeContractParams - wagmi's useWriteContract parameters
  */
 export function useScaffoldWriteContract<TContractName extends ContractName>(
-  configOrName: UseScaffoldWriteConfig<TContractName> | TContractName,
+  configOrName:
+    | (UseScaffoldWriteConfig<TContractName> & {
+        noWaitForReceipt?: boolean;
+        customNonce?: number;
+      })
+    | TContractName,
   writeContractParams?: UseWriteContractParameters,
 ): ScaffoldWriteContractReturnType<TContractName> {
   const finalConfig =

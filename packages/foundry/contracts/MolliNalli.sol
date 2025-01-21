@@ -15,6 +15,7 @@ error ErrorNotPlayer();
 error ErrorJoined();
 error ErrorEnded();
 error ErrorNotPlaying();
+error ErrorOutPlayer();
 
 enum CardType {
     None,
@@ -39,6 +40,7 @@ contract MolliNalli {
 
     struct Player {
         bool isReady;
+        bool out; // 出局
         uint8 score;
         uint8 actionCount;
         uint8 turn;
@@ -68,9 +70,9 @@ contract MolliNalli {
      * every time only show 4 card
      */
     event GameStarted(address[] players, uint256 seed);
-    event GameEnded(Player[] players, uint256 endTime);
+    event GameEnded(address playerAddr, Player player, uint256 endTime);
     event UpdateSeed(address player, uint256 seed);
-    
+
     function getPlayer(address player) public view returns (Player memory) {
         return players[player];
     }
@@ -79,10 +81,10 @@ contract MolliNalli {
      * 用户每次决策都是一个action，直接根据seed来计算输赢然后积分。
      * @param pressed 是否拍下bell
      */
-    function action(bool pressed) isPlayer isPlaying external {
+    function action(bool pressed) external isPlayer isPlaying {
         Player storage player = players[msg.sender];
         uint8 actionCount = player.actionCount;
-        if(actionCount == MAX_ACTION){
+        if (actionCount == MAX_ACTION) {
             revert ErrorEnded();
         }
 
@@ -92,20 +94,40 @@ contract MolliNalli {
         player.score += win ? 1 : 0;
         player.actionCount = ++actionCount;
         player.turn += 1;
-        
-        if(actionCount == MAX_ACTION){
+
+        afterAction(player);
+    }
+
+    function afterAction(Player storage player) private {
+        uint8 actionCount = player.actionCount;
+        if (actionCount == MAX_ACTION) {
             stage = uint8(GameStage.ENDED);
             leaderboard[msg.sender] += 1;
             endGame();
         }
-        if(actionCount % MAX_ACTION_PER_ROUND == 0){
+        if (actionCount % MAX_ACTION_PER_ROUND == 0) {
             // 更新seed
-            player.seed = uint256(keccak256(abi.encode(seed)));
+            player.seed = uint256(keccak256(abi.encode(player.seed)));
             player.turn = 0;
             emit UpdateSeed(msg.sender, player.seed);
         }
+
+        // 只能错三次
+        if (actionCount - player.score > 3) {
+            player.out = true;
+            emit GameEnded(msg.sender, player, block.timestamp);
+
+            // 检查是否达到游戏结束条件
+            for (uint256 i = 0; i < playersAddr.length; ++i) {
+                address playerAddr = playersAddr[i];
+                if (players[playerAddr].out == false) {
+                    return;
+                }
+            }
+            endGame();
+        }
     }
-    
+
     /**
      * 游戏结束结算
      */
@@ -116,10 +138,13 @@ contract MolliNalli {
             address playerAddr = playersAddr[i];
             Player memory player = players[playerAddr];
             playersTemp[i] = player;
-            
+
             players[playerAddr].isReady = false;
+            if (player.out == false) {
+                emit GameEnded(playerAddr, player, block.timestamp);
+            }
         }
-        emit GameEnded(playersTemp, block.timestamp);
+
         stage = uint8(GameStage.NOT_START);
     }
 
@@ -136,7 +161,8 @@ contract MolliNalli {
         if (players[msg.sender].isReady) {
             revert ErrorJoined();
         }
-        players[msg.sender] = Player({score: 0, seed: 0, isReady: true, actionCount: 0, startTime: 0,turn:0});
+        players[msg.sender] =
+            Player({ score: 0, seed: 0, isReady: true, actionCount: 0, startTime: 0, turn: 0, out: false });
         playersAddr.push(msg.sender);
     }
 
@@ -183,10 +209,11 @@ contract MolliNalli {
 
     modifier isPlayer() {
         require(players[msg.sender].isReady, ErrorNotPlayer());
+        require(players[msg.sender].out == false, ErrorOutPlayer());
         _;
     }
-    
-    modifier isPlaying(){
+
+    modifier isPlaying() {
         require(stage == uint8(GameStage.PLAYING) && stage != uint8(GameStage.ENDED), ErrorNotPlaying());
         _;
     }
