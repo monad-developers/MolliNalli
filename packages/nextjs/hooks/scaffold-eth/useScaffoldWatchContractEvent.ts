@@ -39,5 +39,7 @@ export const useScaffoldWatchContractEvent = <
     chainId: selectedNetwork.id,
     onLogs: listenerWithIndexedArgs,
     eventName,
+    poll: true,
+    pollingInterval: 500,
   });
 };

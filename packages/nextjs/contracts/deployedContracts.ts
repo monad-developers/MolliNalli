@@ -139,6 +139,49 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "leaderboardRank",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "playerAddr",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "score",
+              type: "uint96",
+              internalType: "uint96",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "leaderboardValue",
+          inputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint96",
+              internalType: "uint96",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "players",
           inputs: [
             {
@@ -188,6 +231,25 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "playersAddr",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "stage",
           inputs: [],
           outputs: [
@@ -213,7 +275,7 @@ const deployedContracts = {
             {
               name: "playerAddr",
               type: "address",
-              indexed: false,
+              indexed: true,
               internalType: "address",
             },
             {
@@ -294,7 +356,7 @@ const deployedContracts = {
             {
               name: "player",
               type: "address",
-              indexed: false,
+              indexed: true,
               internalType: "address",
             },
             {
@@ -349,7 +411,7 @@ const deployedContracts = {
   },
   31337: {
     MolliNalli: {
-      address: "0x574ae67a6e45e1bf2098ab2e142eb9d5ca686bd0",
+      address: "0x375d6039674fff99904ce155fd708f2bd6e4a957",
       abi: [
         {
           type: "function",
@@ -481,6 +543,49 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "leaderboardRank",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "playerAddr",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "score",
+              type: "uint96",
+              internalType: "uint96",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "leaderboardValue",
+          inputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint96",
+              internalType: "uint96",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "players",
           inputs: [
             {
@@ -530,6 +635,25 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "playersAddr",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "stage",
           inputs: [],
           outputs: [
@@ -555,7 +679,7 @@ const deployedContracts = {
             {
               name: "playerAddr",
               type: "address",
-              indexed: false,
+              indexed: true,
               internalType: "address",
             },
             {
@@ -636,7 +760,7 @@ const deployedContracts = {
             {
               name: "player",
               type: "address",
-              indexed: false,
+              indexed: true,
               internalType: "address",
             },
             {
@@ -685,7 +809,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deploymentFile: "run-1737429542.json",
+      deploymentFile: "run-1737601189.json",
       deploymentScript: "Deploy.s.sol",
     },
   },

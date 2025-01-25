@@ -55,10 +55,16 @@ contract MolliNalli {
      * 2: ended
      */
     uint8 public stage;
-    uint8 playersCount;
     mapping(address => Player) public players;
-    address[] playersAddr;
-    mapping(address => uint256) leaderboard;
+    address[] public playersAddr;
+
+    struct Leaderboard {
+        address playerAddr;
+        uint96 score;
+    }
+
+    mapping(address => uint96) public leaderboardValue;
+    Leaderboard[20] public leaderboardRank;
 
     /**
      * @dev Card seed
@@ -70,8 +76,8 @@ contract MolliNalli {
      * every time only show 4 card
      */
     event GameStarted(address[] players, uint256 seed);
-    event GameEnded(address playerAddr, Player player, uint256 endTime);
-    event UpdateSeed(address player, uint256 seed);
+    event GameEnded(address indexed playerAddr, Player player, uint256 endTime);
+    event UpdateSeed(address indexed player, uint256 seed);
 
     function getPlayer(address player) public view returns (Player memory) {
         return players[player];
@@ -102,7 +108,7 @@ contract MolliNalli {
         uint8 actionCount = player.actionCount;
         if (actionCount == MAX_ACTION) {
             stage = uint8(GameStage.ENDED);
-            leaderboard[msg.sender] += 1;
+            addWin();
             endGame();
         }
         if (actionCount % MAX_ACTION_PER_ROUND == 0) {
@@ -144,8 +150,34 @@ contract MolliNalli {
                 emit GameEnded(playerAddr, player, block.timestamp);
             }
         }
+        delete playersAddr;
 
         stage = uint8(GameStage.NOT_START);
+    }
+
+    function addWin() private{
+      // add win player to leaderboard
+      leaderboardValue[msg.sender] += 1;
+      uint96 winCount = leaderboardValue[msg.sender];
+      // sort leaderboard by score
+      uint96 min = type(uint96).max;
+      uint minIndex = 0;
+      for (uint256 i = 0; i < leaderboardRank.length; ++i) {
+        Leaderboard storage leaderboard = leaderboardRank[i];
+        if (leaderboard.score < min) {
+          min = leaderboard.score;
+          minIndex = i;
+        }
+        if(min == 0){
+          break;
+        }
+      }
+      
+      if (winCount > min) {
+        Leaderboard storage leaderboard = leaderboardRank[minIndex];
+        leaderboard.playerAddr = msg.sender;
+        leaderboard.score = winCount;
+      }
     }
 
     /**

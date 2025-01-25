@@ -20,6 +20,7 @@ export type PlayerInfo = {
   turn: number;
   startTime: number;
   seed: bigint;
+  out: boolean;
 };
 
 export type EndInfo = {
