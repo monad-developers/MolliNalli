@@ -1,19 +1,19 @@
 import { defineChain } from "viem";
 
 // Base chain
-export const monadDevnet = defineChain({
-  id: 20143,
-  name: "Monad Devnet",
-  nativeCurrency: { name: "DMON", symbol: "DMON", decimals: 18 },
+export const monadTestnet = defineChain({
+  id: 10143,
+  name: "Monad Testnet",
+  nativeCurrency: { name: "TMON", symbol: "TMON", decimals: 18 },
   rpcUrls: {
     default: {
-      http: ["https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
+      http: ["https://monad-testnet.g.alchemy.com/v2/srqHd6rhPmXcsrrWuY_HYYmn1SFLDIOO"],
     },
   },
   blockExplorers: {
     default: {
       name: "Monad Explorer",
-      url: "https://explorer.monad-devnet.devnet101.com/",
+      url: "https://testnet.monadexplorer.com/",
     },
   },
 });

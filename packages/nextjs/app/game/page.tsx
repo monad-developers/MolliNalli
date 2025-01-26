@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { CardType, EndInfo, GameStage, MNCard, PlayerInfo } from "../type";
 import { AnimatePresence, motion } from "motion/react";
-import { keccak256, toHex } from "viem";
-import { useAccount, useReadContracts, useWatchContractEvent } from "wagmi";
+import { keccak256, parseGwei, toHex } from "viem";
+import { useAccount, useReadContracts, useTransactionCount } from "wagmi";
 import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
 import { useEndInfo, useStart } from "~~/hooks/game/hooks";
@@ -56,6 +56,10 @@ const GameInitial = ({ address }: { address: string }) => {
     contractName: "MolliNalli",
     chainId: selectedNetwork.id as AllowedChainIds,
   });
+
+  const { data: nonce } = useTransactionCount({
+    address,
+  });
   const { data, isFetched } = useReadContracts({
     contracts: [
       {
@@ -79,7 +83,7 @@ const GameInitial = ({ address }: { address: string }) => {
   });
 
   const [maxAction, maxActionPerRound, stage, player] = data || [];
-  if (!isFetched) {
+  if (!isFetched || !nonce) {
     return <>加载中...</>;
   }
   return (
@@ -89,6 +93,7 @@ const GameInitial = ({ address }: { address: string }) => {
       maxActionPerRound={maxActionPerRound?.result as number}
       stage={stage?.result as number}
       player={player?.result as PlayerInfo}
+      nonce={nonce}
     />
   );
 };
@@ -115,14 +120,15 @@ const GamePageInner = (init: {
   maxActionPerRound: number;
   stage: number;
   player: PlayerInfo;
+  nonce: number;
 }) => {
   const { address } = init;
   const { gameStage, setGameStage } = useGameState(init.stage as GameStage);
   const { endInfo, setEndInfo } = useEndInfo();
   const [currentCards, setCurrentCards] = useState<{ index: number; types: MNCard }[]>([]);
   const [seedInfo, setSeedInfo] = useState<{ seed: bigint; turn: number; actionCount: number } | null>(null);
+  const [localNonce, setLocalNonce] = useState(init.nonce);
   // 当主动达到24action时就会进入等待结束状态
-  const [showEndInfo, setShowEndInfo] = useState(false);
 
   const onStartGame = useCallback(
     (seed: bigint) =>
@@ -137,7 +143,6 @@ const GamePageInner = (init: {
     // 初始化
     const { player } = init;
     if (player.out) {
-      setShowEndInfo(true);
       setEndInfo({
         address: address,
         user: player,
@@ -150,7 +155,7 @@ const GamePageInner = (init: {
       turn: player.turn,
       actionCount: player.actionCount,
     });
-  }, [init, address, setEndInfo, setShowEndInfo, setSeedInfo]);
+  }, [init, address, setEndInfo, setSeedInfo]);
 
   const { data: playerData, refetch: refetchPlayer } = useScaffoldReadContract({
     contractName: "MolliNalli",
@@ -173,30 +178,34 @@ const GamePageInner = (init: {
   const joinGame = async () => {
     writeContractAsync({
       functionName: "joinGame",
+      nonce: localNonce,
     });
+    setLocalNonce(nonce => nonce + 1);
   };
 
   const startGame = async () => {
     writeContractAsync({
       functionName: "startGame",
+      nonce: localNonce,
     });
+    setLocalNonce(nonce => nonce + 1);
   };
 
   const action = async (bell: boolean) => {
     writeContract({
       functionName: "action",
       args: [bell],
+      nonce: localNonce,
+      maxFeePerGas: parseGwei("60"),
+      gas: 163560n,
     });
+    setLocalNonce(nonce => nonce + 1);
     setSeedInfo(seedInfo => {
       if (!seedInfo) return null;
       const newInfo = { ...seedInfo, turn: seedInfo.turn + 1, actionCount: seedInfo.actionCount + 1 };
       if (newInfo.actionCount % 6 == 0) {
         newInfo.seed = BigInt(keccak256(toHex(seedInfo.seed)));
         newInfo.turn = 0;
-      }
-
-      if (newInfo.actionCount === init.maxActionPerRound) {
-        setShowEndInfo(true);
       }
       return newInfo;
     });
