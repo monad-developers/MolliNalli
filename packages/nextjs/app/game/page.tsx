@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CardType, EndInfo, GameStage, MNCard, PlayerInfo } from "../type";
 import { AnimatePresence, motion } from "motion/react";
 import { keccak256, parseGwei, toHex } from "viem";
-import { useAccount, useReadContracts, useTransactionCount } from "wagmi";
+import { useAccount, usePublicClient, useReadContracts, useTransactionCount } from "wagmi";
 import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
 import { useEndInfo, useStart } from "~~/hooks/game/hooks";
@@ -14,7 +14,7 @@ import {
   useScaffoldWriteContract,
   useSelectedNetwork,
 } from "~~/hooks/scaffold-eth/index";
-import { AllowedChainIds, notification } from "~~/utils/scaffold-eth";
+import { AllowedChainIds } from "~~/utils/scaffold-eth";
 
 const getThreeCards = (seed: bigint, startIndex: number) => {
   const TYPE_MASK = BigInt(0b11);
@@ -45,7 +45,7 @@ const GamePage = () => {
   const { address } = useAccount();
 
   if (!address) {
-    return <>请连接钱包</>;
+    return <div className="flex w-86 mx-auto p-4">请连接钱包</div>;
   }
   return <GameInitial address={address} />;
 };
@@ -60,15 +60,12 @@ const GameInitial = ({ address }: { address: string }) => {
   const { data: nonce } = useTransactionCount({
     address,
   });
-  const { data, isFetched } = useReadContracts({
+
+  const { data, isFetched, error } = useReadContracts({
     contracts: [
       {
         ...deployedContract,
         functionName: "MAX_ACTION",
-      },
-      {
-        ...deployedContract,
-        functionName: "MAX_ACTION_PER_ROUND",
       },
       {
         ...deployedContract,
@@ -82,15 +79,22 @@ const GameInitial = ({ address }: { address: string }) => {
     ],
   });
 
-  const [maxAction, maxActionPerRound, stage, player] = data || [];
-  if (!isFetched || !nonce) {
-    return <>加载中...</>;
+  const [maxAction, stage, player] = data || [];
+
+  if (error) {
+    return <div className="flex w-86 mx-auto p-4">错误:{JSON.stringify(error)}</div>;
   }
+
+  console.log(nonce);
+
+  if (!isFetched || nonce === undefined) {
+    return <div className="flex w-86 mx-auto p-4 ">加载中...</div>;
+  }
+
   return (
     <GamePageInner
       address={address}
       maxAction={maxAction?.result as number}
-      maxActionPerRound={maxActionPerRound?.result as number}
       stage={stage?.result as number}
       player={player?.result as PlayerInfo}
       nonce={nonce}
@@ -117,16 +121,18 @@ const useGameState = (init: GameStage) => {
 const GamePageInner = (init: {
   address: string;
   maxAction: number;
-  maxActionPerRound: number;
   stage: number;
   player: PlayerInfo;
   nonce: number;
 }) => {
   const { address } = init;
-  const { gameStage, setGameStage } = useGameState(init.stage as GameStage);
+  const { gameStage } = useGameState(init.stage as GameStage);
   const { endInfo, setEndInfo } = useEndInfo();
   const [currentCards, setCurrentCards] = useState<{ index: number; types: MNCard }[]>([]);
-  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; turn: number; actionCount: number } | null>(null);
+  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; actionCount: number } | null>(null);
+
+  const [setup, setSetup] = useState(false);
+  const publicClient = usePublicClient()!;
   const [localNonce, setLocalNonce] = useState(init.nonce);
   // 当主动达到24action时就会进入等待结束状态
 
@@ -134,12 +140,15 @@ const GamePageInner = (init: {
     (seed: bigint) =>
       setSeedInfo(info => {
         if (info?.seed === seed) return info;
-        return { seed, turn: 0, actionCount: 0 };
+        return { seed, actionCount: 0 };
       }),
     [setSeedInfo],
   );
+
   useStart(onStartGame);
+
   useEffect(() => {
+    console.log("init", init);
     // 初始化
     const { player } = init;
     if (player.out) {
@@ -152,23 +161,36 @@ const GamePageInner = (init: {
 
     setSeedInfo({
       seed: player.seed,
-      turn: player.turn,
       actionCount: player.actionCount,
     });
-  }, [init, address, setEndInfo, setSeedInfo]);
+  }, [init, address, setEndInfo, setSeedInfo, setLocalNonce, setSetup, publicClient]);
 
-  const { data: playerData, refetch: refetchPlayer } = useScaffoldReadContract({
+  const { data: playerData } = useScaffoldReadContract({
     contractName: "MolliNalli",
     functionName: "getPlayer",
     args: [address],
   });
 
+  const updateLocalNonce = useCallback(() => {
+    publicClient
+      .getTransactionCount({ address })
+      .then(nonce => {
+        console.log("set nonce", nonce);
+        setLocalNonce(nonce!);
+      })
+      .then(() => setSetup(true));
+  }, [address, publicClient, setLocalNonce]);
+
   useEffect(() => {
-    if (!seedInfo) return;
-    console.log(seedInfo);
-    const cards = getThreeCards(seedInfo.seed, seedInfo.turn);
+    if (!seedInfo || !seedInfo.seed) return;
+    console.log("update cards", setup, seedInfo);
+    if (!setup) {
+      console.log("update nonce");
+      updateLocalNonce();
+    }
+    const cards = getThreeCards(seedInfo.seed, seedInfo.actionCount);
     setCurrentCards(cards);
-  }, [seedInfo]);
+  }, [seedInfo, publicClient, address, setup]);
 
   // Contract writes
   const { writeContract, writeContractAsync } = useScaffoldWriteContract({
@@ -178,20 +200,17 @@ const GamePageInner = (init: {
   const joinGame = async () => {
     writeContractAsync({
       functionName: "joinGame",
-      nonce: localNonce,
     });
-    setLocalNonce(nonce => nonce + 1);
   };
 
   const startGame = async () => {
     writeContractAsync({
       functionName: "startGame",
-      nonce: localNonce,
     });
-    setLocalNonce(nonce => nonce + 1);
   };
 
   const action = async (bell: boolean) => {
+    console.log("action", localNonce);
     writeContract({
       functionName: "action",
       args: [bell],
@@ -202,43 +221,22 @@ const GamePageInner = (init: {
     setLocalNonce(nonce => nonce + 1);
     setSeedInfo(seedInfo => {
       if (!seedInfo) return null;
-      const newInfo = { ...seedInfo, turn: seedInfo.turn + 1, actionCount: seedInfo.actionCount + 1 };
-      if (newInfo.actionCount % 6 == 0) {
-        newInfo.seed = BigInt(keccak256(toHex(seedInfo.seed)));
-        newInfo.turn = 0;
-      }
-      return newInfo;
+      return { ...seedInfo, actionCount: seedInfo.actionCount + 1 };
     });
   };
 
   const handleJoinGame = async () => {
-    try {
-      await joinGame();
-      notification.success("Successfully joined the game!", { position: "top-left" });
-    } catch (error) {
-      notification.error("Failed to join game");
-      console.error(error);
-    }
+    await joinGame();
+    setSetup(false);
+    setSeedInfo(null);
   };
 
   const handleStartGame = async () => {
-    try {
-      await startGame();
-      notification.success("Game started!", { position: "top-left" });
-    } catch (error) {
-      notification.error("Failed to start game");
-      console.error(error);
-    }
+    await startGame();
   };
 
   const handleAction = async (pressed: boolean) => {
-    try {
-      await action(pressed);
-      notification.success(pressed ? "Bell pressed!" : "Pass!", { position: "top-left" });
-    } catch (error) {
-      notification.error("Action failed");
-      console.error(error);
-    }
+    await action(pressed);
   };
 
   const transition = { type: "spring", stiffness: 200, damping: 20 };
@@ -278,7 +276,7 @@ const GamePageInner = (init: {
                 Start Game
               </button>
             )}
-            {gameStage === GameStage.PLAYING && (
+            {gameStage === GameStage.PLAYING && setup && (
               <div className="flex flex-col gap-4">
                 {/* Cards Display */}
                 <div className="flex gap-4">
