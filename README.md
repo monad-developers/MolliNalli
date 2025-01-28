@@ -539,7 +539,63 @@ contract MolliNalli {
 }
 ```
 
-## 部署
+## 构建前端
+此刻我们可以构建一下前端代码，在前端代码中，我们会省略所有不重要的内容，只关注我们和链上交互的代码，得益于viem和scffold提供的内置函数，我们可以轻松的完成这一步。
+
+首先，这个游戏中，我们需要构建的是获取多人游戏状态的读取代码，并且让他支持断线冲连的情况，因此我们每次加入时，需要先获取一个整体状态，以便程序可以判断当前游戏是还没有开始还是已经开始。
+
+因此我们需要插入下面的代码，这个代码是直接从合约中读取状态变量的部分，可以看到的是我们获取了一个常量，一个变量，一个函数调用值。
+```typescript
+// packages/nextjs/app/game/page.tsx 
+// TODO: 合约状态初始化
+const { data, isFetched, error } = useReadContracts({
+  contracts: [
+    {
+      ...deployedContract,
+      functionName: "MAX_ACTION", // 常量的获取
+    },
+    {
+      ...deployedContract,
+      functionName: "stage", // 变量的获取
+    },
+    {
+      ...deployedContract,
+      functionName: "getPlayer", // 调用函数
+      args: [address], // 传入参数
+    },
+  ],
+});
+```
+
+现在有了初始状态下的值，我们就需要进入游戏的核心逻辑部分，这个节点我们需要监听player的变化，以及监听游戏事件，比如监听游戏开始的事件，监听游戏结束的事件。
+
+所以我们来构建两个Hook帮助我们完成这个功能，一个是`useEndInfo`，一个是`useStart`。
+```typescript
+// packages/nextjs/hooks/game/hooks.ts
+
+// 读取链上游戏结束Event
+// 通过filters来指定只获取当前player结束游戏的Event
+// useScaffoldEventHistory 实际上是封装好的getLogs
+const { data } = useScaffoldEventHistory({
+  enabled: !!blockNumber,
+  contractName: "MolliNalli",
+  eventName: "GameEnded",
+  fromBlock: blockNumber || 0n,
+  filters: { playerAddr: address },
+  watch: true,
+});
+
+// 读取链上游戏开始Event
+const { data } = useScaffoldEventHistory({
+  enabled: !!blockNumber,
+  contractName: "MolliNalli",
+  eventName: "GameStarted",
+  fromBlock: blockNumber || 0n,
+  watch: true,
+});
+```
+
+## 本地部署测试
 
 ### 部署前准备
 此时我们就可以使用ScaffoldEth自带的账号控制系统来部署合约了。
@@ -566,3 +622,6 @@ yarn deploy
 ```bash
 yarn start
 ```
+
+此时我们就可以看到我们MolliNalli游戏的本地测试版本了！
+

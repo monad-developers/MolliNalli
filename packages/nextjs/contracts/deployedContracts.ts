@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     MolliNalli: {
-      address: "0x375d6039674fff99904ce155fd708f2bd6e4a957",
+      address: "0x574ae67a6e45e1bf2098ab2e142eb9d5ca686bd0",
       abi: [
         {
           type: "function",
@@ -324,7 +324,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deploymentFile: "run-1737919618.json",
+      deploymentFile: "run-1737981040.json",
       deploymentScript: "Deploy.s.sol",
     },
   },
