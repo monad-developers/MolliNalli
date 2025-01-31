@@ -9,14 +9,7 @@ export const useEndInfo = () => {
   const [endInfo, setEndInfo] = useState<EndInfo>();
   const { data: blockNumber, refetch } = useBlockNumber();
 
-  const { data } = useScaffoldEventHistory({
-    enabled: !!blockNumber,
-    contractName: "MolliNalli",
-    eventName: "GameEnded",
-    fromBlock: blockNumber || 0n,
-    filters: { playerAddr: address },
-    watch: true,
-  });
+  // TODO: 读取链上游戏结束Event
 
   useEffect(() => {
     if (data && data.length > 0 && data[0].args) {
@@ -38,13 +31,7 @@ export const useEndInfo = () => {
 
 export const useStart = (cb: (seed: bigint) => void) => {
   const { data: blockNumber, refetch } = useBlockNumber();
-  const { data } = useScaffoldEventHistory({
-    enabled: !!blockNumber,
-    contractName: "MolliNalli",
-    eventName: "GameStarted",
-    fromBlock: blockNumber || 0n,
-    watch: true,
-  });
+  // TODO: 读取链上游戏开始Event
 
   useEffect(() => {
     if (data && data.length > 0 && data[0].args.seed) {
@@ -60,30 +47,7 @@ export const useGameLogic = () => {
     contractName: "MolliNalli",
   });
 
-  const joinGame = useCallback(async () => {
-    writeContractAsync({
-      functionName: "joinGame",
-    });
-  }, [writeContractAsync]);
-
-  const startGame = useCallback(async () => {
-    writeContractAsync({
-      functionName: "startGame",
-    });
-  }, [writeContractAsync]);
-
-  const action = useCallback(
-    async (bell: boolean, localNonce: number) => {
-      return writeContract({
-        functionName: "action",
-        args: [bell],
-        nonce: localNonce,
-        maxFeePerGas: parseGwei("60"),
-        gas: 163560n,
-      });
-    },
-    [writeContract],
-  );
+  // 添加三个Action
 
   return {
     joinGame,

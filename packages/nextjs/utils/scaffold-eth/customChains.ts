@@ -7,7 +7,7 @@ export const monadTestnet = defineChain({
   nativeCurrency: { name: "TMON", symbol: "TMON", decimals: 18 },
   rpcUrls: {
     default: {
-      http: ["https://monad-testnet.g.alchemy.com/v2/srqHd6rhPmXcsrrWuY_HYYmn1SFLDIOO"],
+      http: ["https://rpc-testnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
     },
   },
   blockExplorers: {

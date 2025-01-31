@@ -2,6 +2,7 @@ export enum GameStage {
   NOT_START,
   PLAYING,
   ENDED,
+  WAITING_END,
 }
 
 export enum CardType {
@@ -17,8 +18,6 @@ export type PlayerInfo = {
   isReady: boolean;
   score: number;
   actionCount: number;
-  turn: number;
-  startTime: number;
   seed: bigint;
   out: boolean;
 };
@@ -27,4 +26,12 @@ export type EndInfo = {
   address: string;
   user: PlayerInfo;
   timestamp: bigint;
+};
+
+export type GameInit = {
+  address: string;
+  maxAction: number;
+  stage: number;
+  player: PlayerInfo;
+  nonce: number;
 };
