@@ -594,7 +594,34 @@ const { data } = useScaffoldEventHistory({
   watch: true,
 });
 ```
+我们还有一个主逻辑的Hook，`useGameLogic`，这里面包含的是三个用于调用合约执行的Action，我们需要完善一下。
 
+```typescript
+const joinGame = useCallback(async () => {
+  writeContractAsync({
+    functionName: "joinGame",
+  });
+}, [writeContractAsync]);
+
+const startGame = useCallback(async () => {
+  writeContractAsync({
+    functionName: "startGame",
+  });
+}, [writeContractAsync]);
+
+const action = useCallback(
+  async (bell: boolean, localNonce: number) => {
+    return writeContract({
+      functionName: "action",
+      args: [bell],
+      nonce: localNonce,
+      maxFeePerGas: parseGwei("60"),
+      gas: 163560n,
+    });
+  },
+  [writeContract],
+);
+```
 ## 本地部署测试
 
 ### 部署前准备
