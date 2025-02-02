@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { userAgent } from "next/server";
-import { CardType, EndInfo, GameInit, GameStage, MNCard, PlayerInfo } from "../type";
+import { CardType, EndInfo, GameStage, MNCard, PlayerInfo } from "../type";
+import { GameContext, useGameContext } from "./GameContext";
 import { AnimatePresence, motion } from "motion/react";
 import { useAccount, usePublicClient, useReadContracts, useTransactionCount } from "wagmi";
 import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
-import { useEndInfo, useGameLogic, useGameState, useStart } from "~~/hooks/game/hooks";
+import { useEndInfo, useGameLogic, useStart } from "~~/hooks/game/hooks";
 import { useDeployedContractInfo, useScaffoldReadContract, useSelectedNetwork } from "~~/hooks/scaffold-eth/index";
 import { AllowedChainIds } from "~~/utils/scaffold-eth";
 
@@ -36,35 +36,6 @@ const getThreeCards = (seed: bigint, startIndex: number) => {
   return cards;
 };
 
-const BITS_PER_TYPE = 2;
-const ANIMAL_COUNT = 4;
-const TYPE_MASK = 0x03; // Binary: 11
-const ANIMAL_TYPE = 3;
-const BELL_TARGET = 4;
-
-function checkCard(value: bigint, turn: number): boolean {
-  // 储存每个吉祥物的数量
-  const types = new Array(4).fill(0);
-
-  // 因为每轮要移除第一张牌，所以移除相应轮次的牌数
-  value = value >> BigInt(turn * BITS_PER_TYPE * ANIMAL_COUNT);
-
-  // 检查12张牌 (3 * 4)
-  for (let i = 0; i < 3 * ANIMAL_COUNT; i++) {
-    const index = Number(value & BigInt(TYPE_MASK));
-    value = value >> BigInt(BITS_PER_TYPE);
-    types[index] += 1;
-  }
-
-  // 检查是否有达到目标数量的类型
-  for (let i = 1; i <= ANIMAL_TYPE; i++) {
-    if (types[i] === BELL_TARGET) {
-      return true;
-    }
-  }
-  return false;
-}
-
 const GamePage = () => {
   const { address } = useAccount();
 
@@ -81,69 +52,58 @@ const GameInitial = ({ address }: { address: string }) => {
     chainId: selectedNetwork.id as AllowedChainIds,
   });
 
+  const publicClient = usePublicClient();
   const { data: nonce } = useTransactionCount({
     address,
   });
 
-  const { data, isFetched, error } = useReadContracts({
-    contracts: [
-      {
-        ...deployedContract,
-        functionName: "MAX_ACTION",
-      },
-      {
-        ...deployedContract,
-        functionName: "stage",
-      },
-      {
-        ...deployedContract,
-        functionName: "getPlayer",
-        args: [address],
-      },
-    ],
-  });
-
-  const [maxAction, stage, player] = data || [];
+  // TODO: 合约状态初始化
 
   if (error) {
     return <div className="flex w-86 mx-auto p-4">错误:{JSON.stringify(error)}</div>;
   }
 
-  console.log(nonce, isFetched);
+  if (!publicClient) {
+    return <div className="flex w-86 mx-auto p-4">无法连接到链上</div>;
+  }
 
   if (!isFetched || nonce === undefined) {
     return <div className="flex w-86 mx-auto p-4 ">加载中...</div>;
   }
 
+  const [maxAction, stage, player] = data || [];
+  const contextValue = {
+    address,
+    maxAction: maxAction?.result as number,
+    stage: stage?.result as number,
+    player: player?.result as PlayerInfo,
+    nonce,
+    publicClient,
+  };
+
   return (
-    <GamePageInner
-      address={address}
-      maxAction={maxAction?.result as number}
-      stage={stage?.result as number}
-      player={player?.result as PlayerInfo}
-      nonce={nonce}
-    />
+    <GameContext.Provider value={contextValue}>
+      <GamePageInner />
+    </GameContext.Provider>
   );
 };
 
-const GamePageInner = (init: GameInit) => {
-  const { address } = init;
-  const { localGameStage: gameStage, setGameStage } = useGameState(init.stage as GameStage);
+const GamePageInner = () => {
+  const { address, maxAction, stage, player, nonce, publicClient } = useGameContext();
+  const { gameStage } = useGameState(stage as GameStage);
   const { endInfo, setEndInfo } = useEndInfo();
   const [currentCards, setCurrentCards] = useState<{ index: number; types: MNCard }[]>([]);
-  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; score: number; actionCount: number } | null>(null);
+  const [seedInfo, setSeedInfo] = useState<{ seed: bigint; actionCount: number } | null>(null);
 
   const [setup, setSetup] = useState(false);
-  const publicClient = usePublicClient()!;
-  const [localNonce, setLocalNonce] = useState(init.nonce);
+  const [localNonce, setLocalNonce] = useState(nonce);
   const { joinGame, startGame, triggerAction } = useGameLogic();
-  // 当主动达到24action时就会进入等待结束状态
 
   const onStartGame = useCallback(
     (seed: bigint) =>
       setSeedInfo(info => {
         if (info?.seed === seed) return info;
-        return { seed, score: 0, actionCount: 0 };
+        return { seed, actionCount: 0 };
       }),
     [setSeedInfo],
   );
@@ -151,9 +111,7 @@ const GamePageInner = (init: GameInit) => {
   useStart(onStartGame);
 
   useEffect(() => {
-    console.log("init", init);
     // 初始化
-    const { player } = init;
     if (player.out) {
       setEndInfo({
         address: address,
@@ -164,10 +122,9 @@ const GamePageInner = (init: GameInit) => {
 
     setSeedInfo({
       seed: player.seed,
-      score: player.score,
       actionCount: player.actionCount,
     });
-  }, [init, address, setEndInfo, setSeedInfo, setLocalNonce, setSetup, publicClient]);
+  }, [address, player, setEndInfo, setSeedInfo, setLocalNonce, setSetup, publicClient]);
 
   const { data: playerData } = useScaffoldReadContract({
     contractName: "MolliNalli",
@@ -179,8 +136,7 @@ const GamePageInner = (init: GameInit) => {
     publicClient
       .getTransactionCount({ address })
       .then(nonce => {
-        if (!nonce) return;
-        console.log("set nonce", nonce);
+        if (!nonce) throw new Error("nonce not found");
         setLocalNonce(nonce);
       })
       .then(() => setSetup(true));
@@ -188,32 +144,14 @@ const GamePageInner = (init: GameInit) => {
 
   useEffect(() => {
     if (!seedInfo || !seedInfo.seed) return;
-    console.log("update cards", setup, seedInfo);
     if (!setup) {
-      console.log("update nonce");
       updateLocalNonce();
     }
     const cards = getThreeCards(seedInfo.seed, seedInfo.actionCount);
     setCurrentCards(cards);
   }, [seedInfo, publicClient, address, setup, updateLocalNonce]);
 
-  const action = async (bell: boolean) => {
-    triggerAction(bell, localNonce);
-    setLocalNonce(nonce => nonce + 1);
-    setSeedInfo(seedInfo => {
-      if (!seedInfo) return null;
-      const shouldBell = checkCard(seedInfo.seed, seedInfo.actionCount);
-      const result = {
-        ...seedInfo,
-        actionCount: seedInfo.actionCount + 1,
-        score: seedInfo.score + (shouldBell == bell ? 1 : 0),
-      };
-      if (result.actionCount - result.score > 3) {
-        setGameStage(GameStage.WAITING_END);
-      }
-      return result;
-    });
-  };
+  // TODO: 构建action，用来处理用户的决策
 
   const handleJoinGame = async () => {
     await joinGame();
@@ -237,7 +175,7 @@ const GamePageInner = (init: GameInit) => {
           {playerData && (
             <div className="stat">
               <div className="stat-title">Your Score</div>
-              <div className="stat-value">{Number(seedInfo && seedInfo.score) || 0}</div>
+              <div className="stat-value">{Number(playerData.score)}</div>
             </div>
           )}
         </div>
@@ -245,7 +183,6 @@ const GamePageInner = (init: GameInit) => {
         {/* Game Actions */}
         <div className="flex gap-4">
           <>
-            {gameStage === GameStage.WAITING_END && <EndInfoPanel endInfo={endInfo} />}
             {gameStage === GameStage.NOT_START && !playerData?.isReady && (
               <div className="flex flex-col gap-4">
                 <button className="btn btn-primary" onClick={handleJoinGame}>
@@ -302,21 +239,37 @@ const GamePageInner = (init: GameInit) => {
         </div>
 
         {/* Player Info */}
-        {playerData && seedInfo && (
+        {playerData && (
           <div className="card w-96 bg-base-100 shadow-xl">
             <div className="card-body">
               <h2 className="card-title">Player Info</h2>
               <div>
                 Address: <Address address={address} />
               </div>
-              <p>Score: {Number(seedInfo.score)}</p>
-              <p>Actions: {Number(seedInfo.actionCount)}</p>
+              <p>Score: {Number(playerData.score)}</p>
+              <p>Actions: {Number(playerData.actionCount)}</p>
             </div>
           </div>
         )}
       </div>
     </div>
   );
+};
+
+const useGameState = (init: GameStage) => {
+  const [gameStage, setGameStage] = useState<GameStage>(init);
+  const { data: stage } = useScaffoldReadContract({
+    contractName: "MolliNalli",
+    functionName: "stage",
+  });
+  useEffect(() => {
+    setGameStage(stage as GameStage);
+  }, [stage]);
+
+  return {
+    gameStage,
+    setGameStage,
+  };
 };
 
 const EndInfoPanel = ({ endInfo }: { endInfo?: EndInfo }) => {
