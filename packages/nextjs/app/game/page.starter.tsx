@@ -89,18 +89,15 @@ const GameInitial = ({ address }: { address: string }) => {
 };
 
 const GamePageInner = () => {
-  const { address, maxAction, stage, player, nonce } = useGameContext();
+  const { address, maxAction, stage, player, nonce, publicClient } = useGameContext();
   const { gameStage } = useGameState(stage as GameStage);
   const { endInfo, setEndInfo } = useEndInfo();
   const [currentCards, setCurrentCards] = useState<{ index: number; types: MNCard }[]>([]);
   const [seedInfo, setSeedInfo] = useState<{ seed: bigint; actionCount: number } | null>(null);
 
   const [setup, setSetup] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-
   const [localNonce, setLocalNonce] = useState(nonce);
   const { joinGame, startGame, triggerAction } = useGameLogic();
-  // 当主动达到24action时就会进入等待结束状态
 
   const onStartGame = useCallback(
     (seed: bigint) =>
@@ -147,27 +144,14 @@ const GamePageInner = () => {
 
   useEffect(() => {
     if (!seedInfo || !seedInfo.seed) return;
-    console.log("update cards", setup, seedInfo);
     if (!setup) {
-      console.log("update nonce");
       updateLocalNonce();
     }
     const cards = getThreeCards(seedInfo.seed, seedInfo.actionCount);
     setCurrentCards(cards);
   }, [seedInfo, publicClient, address, setup, updateLocalNonce]);
 
-  const action = async (bell: boolean) => {
-    if ((seedInfo?.actionCount ?? 0) >= maxAction) {
-      return;
-    }
-
-    triggerAction(bell, localNonce);
-    setLocalNonce(nonce => nonce + 1);
-    setSeedInfo(seedInfo => {
-      if (!seedInfo) return null;
-      return { ...seedInfo, actionCount: seedInfo.actionCount + 1 };
-    });
-  };
+  // TODO: 构建action，用来处理用户的决策
 
   const handleJoinGame = async () => {
     await joinGame();

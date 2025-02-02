@@ -1,4 +1,4 @@
-import { monadTestnet } from "./utils/scaffold-eth/customChains";
+import { monadDevnet } from "./utils/scaffold-eth/customChains";
 import * as chains from "viem/chains";
 
 export type ScaffoldConfig = {
@@ -11,11 +11,9 @@ export type ScaffoldConfig = {
 
 export const DEFAULT_ALCHEMY_API_KEY = "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
 
-const network = process.env.NEXT_PUBLIC_NETWORK === "testnet" ? monadTestnet : chains.foundry;
-
 const scaffoldConfig = {
   // The networks on which your DApp is live
-  targetNetworks: [network],
+  targetNetworks: [chains.foundry],
 
   // The interval at which your front-end polls the RPC servers for new data
   // it has no effect if you only target the local network (default is 4000)

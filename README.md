@@ -622,8 +622,29 @@ const action = useCallback(
   [writeContract],
 );
 ```
-## 本地部署测试
 
+当我们监听了GameStarted事件后，我们就可以知道游戏什么时候开始了，当游戏开始后，我们就需要进行牌的计算。关于拍的计算步骤我已经做好了函数，因此不需要操心，此时我们只需要在点击Ring Bell或者Pass按钮后调用action即可。
+
+```typescript
+// packages/nextjs/app/game/page.tsx 
+// TODO: 构建action，用来处理用户的决策
+const action = async (bell: boolean) => {
+  if ((seedInfo?.actionCount ?? 0) >= maxAction) {
+    return;
+  }
+
+  triggerAction(bell, localNonce);
+  setLocalNonce(nonce => nonce + 1);
+  setSeedInfo(seedInfo => {
+    if (!seedInfo) return null;
+    return { ...seedInfo, actionCount: seedInfo.actionCount + 1 };
+  });
+};
+```
+
+此时我们前端部分已经完成，接下来我们可以将其部署到Monad Devnet进行测试。
+
+## 部署测试
 ### 部署前准备
 此时我们就可以使用ScaffoldEth自带的账号控制系统来部署合约了。
 
@@ -634,21 +655,45 @@ yarn account:generate
 
 然后修改`/packages/foundry/.env`中的`ETH_KEYSTORE_ACCOUNT`为`scaffold-eth-custom` （没有可以从.env.example复制）
 
-### 启动链，部署合约并且打开前端
+### 设定网络
+在此之前我们还需要设定网络信息，首先是Foundry的网络信息
 
-首先启动链
-```bash
-yarn chain
+```toml
+# packages/foundry/foundry.toml
+# 在 [rpc_endpoints] 下添加
+monadDevnet=https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a
 ```
 
-然后部署合约，此时我们需要打开一个新的终端
-```bash
-yarn deploy
-```
-然后执行启动前端命令
-```bash
-yarn start
+然后我们修改前端的网络设置，进入目录 `packages/nextjs/utils/scaffold-eth`,新建一个文件为`customChains.ts`。
+```typescript
+import { defineChain } from "viem";
+
+// Base chain
+export const monadDevnet = defineChain({
+  id: 20143,
+  name: "Monad Devnet",
+  nativeCurrency: { name: "DMON", symbol: "DMON", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Monad Explorer",
+      url: "https://explorer.monad-devnet.devnet101.com/",
+    },
+  },
+});
 ```
 
-此时我们就可以看到我们MolliNalli游戏的本地测试版本了！
+然后修改 `packages/nextjs/scaffold.config.ts`
+```typescript
+//   targetNetworks: [chains.foundry], 改成
+targetNetworks: [monadDevnet],
+```
 
+### 执行部署命令
+在终端输入 `yarn deploy --network monadDevnet`，将合约部署到测试网，注意部署之前一定要往你的地址里面进行转账。
+
+部署完成后，直接输入`yarn start`即可启动前端。

@@ -9,7 +9,6 @@ fs_permissions = [{ access = "read-write", path = "./"}]
 [rpc_endpoints]
 default_network = "http://127.0.0.1:8545"
 localhost = "http://127.0.0.1:8545"
-monadTestnet = "https://testnet-rpc2.monad.xyz/52227f026fa8fac9e2014c58fbf5643369b3bfc6"
 
 [etherscan]
 
