@@ -12,6 +12,11 @@ MolliNalli 是一个基于 Monad 的游戏，它的设计思路来源于知名�
 
 因此，我们先构建一个合约，来存放游戏逻辑。我们在 `packages/foundry/contracts`下创建文件 `MolliNalli.sol`。
 
+```bash
+touch packages/foundry/contracts/MolliNalli.sol
+cd packages/foundry/contracts
+```
+
 并且简单的编写一个空的合约代码。并且我们设置一下游戏的各种常量。
 
 ```solidity
@@ -552,16 +557,16 @@ const { data, isFetched, error } = useReadContracts({
   contracts: [
     {
       ...deployedContract,
-      functionName: "MAX_ACTION", // 常量的获取
+      functionName: "MAX_ACTION",
     },
     {
       ...deployedContract,
-      functionName: "stage", // 变量的获取
+      functionName: "stage",
     },
     {
       ...deployedContract,
-      functionName: "getPlayer", // 调用函数
-      args: [address], // 传入参数
+      functionName: "getPlayer",
+      args: [address],
     },
   ],
 });
@@ -629,17 +634,22 @@ const action = useCallback(
 // packages/nextjs/app/game/page.tsx 
 // TODO: 构建action，用来处理用户的决策
 const action = async (bell: boolean) => {
-  if ((seedInfo?.actionCount ?? 0) >= maxAction) {
-    return;
-  }
-
   triggerAction(bell, localNonce);
   setLocalNonce(nonce => nonce + 1);
   setSeedInfo(seedInfo => {
     if (!seedInfo) return null;
-    return { ...seedInfo, actionCount: seedInfo.actionCount + 1 };
+    const shouldBell = checkCard(seedInfo.seed, seedInfo.actionCount);
+    const result = {
+      ...seedInfo,
+      actionCount: seedInfo.actionCount + 1,
+      score: seedInfo.score + (shouldBell == bell ? 1 : 0),
+    };
+    if (result.actionCount - result.score > 3) {
+      setGameStage(GameStage.WAITING_END);
+    }
+    return result;
   });
-};
+}
 ```
 
 此时我们前端部分已经完成，接下来我们可以将其部署到Monad Devnet进行测试。
@@ -661,10 +671,14 @@ yarn account:generate
 ```toml
 # packages/foundry/foundry.toml
 # 在 [rpc_endpoints] 下添加
-monadDevnet=https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a
+monadDevnet= "https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"
 ```
 
 然后我们修改前端的网络设置，进入目录 `packages/nextjs/utils/scaffold-eth`,新建一个文件为`customChains.ts`。
+```bash
+touch packages/nextjs/utils/scaffold-eth/customChains.ts
+```
+打开编辑
 ```typescript
 import { defineChain } from "viem";
 
