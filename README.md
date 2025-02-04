@@ -76,7 +76,7 @@ contract MolliNalli {
     /**
      * 获取玩家信息
      * @param playerAddr 玩家地址
-     * @returns 玩家信息
+     * @return Player 玩家信息
      */
     function getPlayer(address playerAddr) public view returns (Player memory) {
         return players[playerAddr];
@@ -343,14 +343,16 @@ error ErrorNotPlaying(); // 非游戏中状态
 error ErrorOutPlayer(); // 玩家已经出局
 
 contract MolliNalli {
+    // 常量设置
+    uint8 public immutable MAX_PLAYERS = 4; // 最多4人
+    uint256 public immutable CARD_MASK = type(uint32).max; // 卡牌掩码，稍后解释
+    uint8 public immutable MAX_ACTION = 30; // 每个玩家最多30轮，稍后解释
+        // 定义一些常量
     uint256 private constant TYPE_MASK = 0x03; // Binary: 11
     uint256 private constant BITS_PER_TYPE = 2; // 二进制位数
     uint256 private constant ANIMAL_COUNT = 4; // 一张牌上最多4个吉祥物
     uint256 private constant ANIMAL_TYPE = 3; // 吉祥物种类
     uint256 private constant BELL_TARGET = 4; // 目标值
-    uint8 public immutable MAX_PLAYERS = 4; // 最多4人
-    uint256 public immutable CARD_MASK = type(uint32).max; // 卡牌掩码，稍后解释
-    uint8 public immutable MAX_ACTION = 30; // 每个玩家最多30轮
 
     struct Player {
         bool isReady; // 是否准备
@@ -371,8 +373,17 @@ contract MolliNalli {
     // 多人游戏加入函数实现
 
     /**
+     * 获取玩家信息
+     * @param playerAddr 玩家地址
+     * @return Player 玩家信息
+     */
+    function getPlayer(address playerAddr) public view returns (Player memory) {
+        return players[playerAddr];
+    }
+    /**
      * 加入游戏
      */
+
     function joinGame() external {
         // 如果游戏已经开始则报错
         if (stage != GameStage.NOT_START) {
@@ -388,13 +399,7 @@ contract MolliNalli {
             revert ErrorJoined();
         }
         // 设置游戏初始状态
-        players[msg.sender] = Player({
-          isReady: true,
-          out: false,
-          score: 0,
-          actionCount: 0,
-          seed: 0
-        });
+        players[msg.sender] = Player({ isReady: true, out: false, score: 0, actionCount: 0, seed: 0 });
         playersAddr.push(msg.sender);
     }
 
@@ -411,75 +416,6 @@ contract MolliNalli {
         setup();
     }
 
-    /**
-     * 游戏启动的初始化配置
-     */
-    function setup() private {
-        uint256 seed = generateSeed();
-
-        // 初始化玩家状态
-        for (uint256 i = 0; i < playersAddr.length; ++i) {
-            address playerAddr = playersAddr[i];
-
-            Player storage player = players[playerAddr];
-            player.seed = seed;
-        }
-
-        emit GameStarted(playersAddr, seed);
-    }
-
-    /**
-     * @dev Generate a random seed
-     */
-    function generateSeed() private view returns (uint256) {
-        // 使用伪随机生成种子
-        bytes memory b = abi.encodePacked(block.timestamp, block.number);
-        for (uint256 i = 0; i < playersAddr.length; i++) {
-            b = abi.encodePacked(b, playersAddr[i]);
-        }
-        return uint256(keccak256(b));
-    }
-    // 判断是否是玩家，并且没有出局
-
-    modifier isPlayer() {
-        require(players[msg.sender].isReady, ErrorNotPlayer());
-        require(players[msg.sender].out == false, ErrorOutPlayer());
-        _;
-    }
-
-    // 判断是否在游戏中
-    modifier isPlaying() {
-        require(stage == GameStage.PLAYING, ErrorNotPlaying());
-        _;
-    }
-    /**
-     * 判断当前turn下的三张牌是否满足Ring或者Pass
-     */
-
-    function checkCard(uint256 value, uint8 turn) public pure returns (bool) {
-        // 储存每个吉祥物的数量
-        uint8[4] memory types;
-        // 因为每轮要移除第一张牌，所以移除相应轮次的牌数
-        value = value >> (turn * BITS_PER_TYPE * ANIMAL_COUNT);
-
-        for (uint8 i = 0; i < 3 * ANIMAL_COUNT; ++i) {
-            uint8 index = uint8(value & TYPE_MASK);
-            value = value >> BITS_PER_TYPE;
-            types[index] += 1;
-        }
-
-        for (uint8 i = 1; i <= ANIMAL_TYPE; ++i) {
-            if (types[i] == BELL_TARGET) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 用户每次决策都是一个action，直接根据seed来计算输赢然后积分。
-     * @param pressed 是否拍下bell,true为ring bell,false为pass
-     */
     function action(bool pressed) external isPlayer isPlaying {
         Player storage player = players[msg.sender];
         uint8 actionCount = player.actionCount;
@@ -541,7 +477,73 @@ contract MolliNalli {
 
         stage = GameStage.NOT_START;
     }
+
+    /**
+     * 游戏启动的初始化配置
+     */
+    function setup() private {
+        uint256 seed = generateSeed();
+
+        // 初始化玩家状态
+        for (uint256 i = 0; i < playersAddr.length; ++i) {
+            address playerAddr = playersAddr[i];
+
+            Player storage player = players[playerAddr];
+            player.seed = seed;
+        }
+
+        emit GameStarted(playersAddr, seed);
+    }
+
+    /**
+     * @dev Generate a random seed
+     */
+    function generateSeed() private view returns (uint256) {
+        // 使用伪随机生成种子
+        bytes memory b = abi.encodePacked(block.timestamp, block.number);
+        for (uint256 i = 0; i < playersAddr.length; i++) {
+            b = abi.encodePacked(b, playersAddr[i]);
+        }
+        return uint256(keccak256(b));
+    }
+
+    /**
+     * 判断当前turn下的三张牌是否满足Ring或者Pass
+     */
+    function checkCard(uint256 value, uint8 turn) public pure returns (bool) {
+        // 储存每个吉祥物的数量
+        uint8[4] memory types;
+        // 因为每轮要移除第一张牌，所以移除相应轮次的牌数
+        value = value >> (turn * BITS_PER_TYPE * ANIMAL_COUNT);
+
+        for (uint8 i = 0; i < 3 * ANIMAL_COUNT; ++i) {
+            uint8 index = uint8(value & TYPE_MASK);
+            value = value >> BITS_PER_TYPE;
+            types[index] += 1;
+        }
+
+        for (uint8 i = 1; i <= ANIMAL_TYPE; ++i) {
+            if (types[i] == BELL_TARGET) {
+                return true;
+            }
+        }
+        return false;
+    }
+    // 判断是否是玩家，并且没有出局
+
+    modifier isPlayer() {
+        require(players[msg.sender].isReady, ErrorNotPlayer());
+        require(players[msg.sender].out == false, ErrorOutPlayer());
+        _;
+    }
+
+    // 判断是否在游戏中
+    modifier isPlaying() {
+        require(stage == GameStage.PLAYING, ErrorNotPlaying());
+        _;
+    }
 }
+
 ```
 
 ## 构建前端
