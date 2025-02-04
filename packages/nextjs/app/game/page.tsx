@@ -84,7 +84,23 @@ const GameInitial = ({ address }: { address: string }) => {
     address,
   });
 
-  // TODO: 合约状态初始化
+  const { data, isFetched, error } = useReadContracts({
+    contracts: [
+      {
+        ...deployedContract,
+        functionName: "MAX_ACTION",
+      },
+      {
+        ...deployedContract,
+        functionName: "stage",
+      },
+      {
+        ...deployedContract,
+        functionName: "getPlayer",
+        args: [address],
+      },
+    ],
+  });
 
   const [maxAction, stage, player] = data || [];
 
@@ -176,7 +192,23 @@ const GamePageInner = (init: GameInit) => {
     setCurrentCards(cards);
   }, [seedInfo, publicClient, address, setup, updateLocalNonce]);
 
-  // TODO: 构建action，用来处理用户的决策
+  const action = async (bell: boolean) => {
+    triggerAction(bell, localNonce);
+    setLocalNonce(nonce => nonce + 1);
+    setSeedInfo(seedInfo => {
+      if (!seedInfo) return null;
+      const shouldBell = checkCard(seedInfo.seed, seedInfo.actionCount);
+      const result = {
+        ...seedInfo,
+        actionCount: seedInfo.actionCount + 1,
+        score: seedInfo.score + (shouldBell == bell ? 1 : 0),
+      };
+      if (result.actionCount - result.score > 3) {
+        setGameStage(GameStage.WAITING_END);
+      }
+      return result;
+    });
+  };
 
   const handleJoinGame = async () => {
     await joinGame();
