@@ -4,7 +4,23 @@
 
 MolliNalli 是一个基于 Monad 的游戏，它的设计思路来源于知名桌游 德国心脏病。
 
-玩家需要通过快速判断三张牌上的相同动物的数量是否为 4 的倍数，如果是，那么就按下 Ring Bell，如果不是，那么就按下 Pass。
+玩家需要通过快速判断三张牌上的相同动物的数量是否为 4 的倍数，如果是，那么就按下 Ring Bell，如果不是，那么就按下 Pass
+
+## 准备工作
+首先我们需要clone当前仓库。
+```bash
+git clone https://github.com/monad-developers/MolliNalli.git
+cd MolliNalli
+```
+当前默认分支应该为 `starter`。
+
+### 安装依赖
+因为当前是一个Monorepo，所以我们只需要执行 `yarn install` 即可。
+
+```bash
+yarn install
+```
+此时，基础的依赖已经安装完成。接下来可以开始编写游戏逻辑。
 
 ## 游戏编写
 
@@ -14,7 +30,6 @@ MolliNalli 是一个基于 Monad 的游戏，它的设计思路来源于知名�
 
 ```bash
 touch packages/foundry/contracts/MolliNalli.sol
-cd packages/foundry/contracts
 ```
 
 并且简单的编写一个空的合约代码。并且我们设置一下游戏的各种常量。
@@ -543,9 +558,104 @@ contract MolliNalli {
         _;
     }
 }
+```
+## 尝试部署合约
+此时我们就可以使用ScaffoldEth自带的账号控制系统来部署合约了。
 
+如果你之前没有使用过ScaffoldEth，那么你需要先执部署账号初始化命令
+```bash
+yarn account:generate
 ```
 
+然后修改`/packages/foundry/.env`中的`ETH_KEYSTORE_ACCOUNT`为`scaffold-eth-custom` （没有可以从.env.example复制）
+
+### 设定网络
+在此之前我们还需要设定网络信息，首先是Foundry的网络信息
+
+```toml
+# packages/foundry/foundry.toml
+# 在 [rpc_endpoints] 下添加
+monadDevnet= "https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"
+```
+
+然后我们修改前端的网络设置，进入目录 `packages/nextjs/utils/scaffold-eth`,新建一个文件为`customChains.ts`。
+```bash
+touch packages/nextjs/utils/scaffold-eth/customChains.ts
+```
+打开编辑
+```typescript
+import { defineChain } from "viem";
+
+// monad devnet chain
+export const monadDevnet = defineChain({
+  id: 20143,
+  name: "Monad Devnet",
+  nativeCurrency: { name: "DMON", symbol: "DMON", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Monad Explorer",
+      url: "https://explorer.monad-devnet.devnet101.com/",
+    },
+  },
+});
+```
+
+然后修改 `packages/nextjs/scaffold.config.ts`
+```typescript
+//   targetNetworks: [chains.foundry], 改成
+targetNetworks: [monadDevnet],
+```
+
+此时，网络环境已经准备就绪，执行以下命令进行代码部署，部署之前，请保证你的地址中有资金。
+
+你可以使用 `yarn account`查看你的地址和地址上的余额。注意，如果你设置正确了你的结果中一定会包含`-- monadDevnet -- 📡`这样的字符串。
+
+当你确定地址中有足够余额的时候，请执行
+```bash
+yarn deploy --network monadDevnet
+```
+你应该得到类似这样的输出。
+```bash
+## Setting up 1 EVM.
+
+==========================
+
+Chain ****
+
+Estimated gas price: 52 gwei
+
+Estimated total gas used for script: 995532
+
+Estimated amount required: 0.051767664 ETH
+
+==========================
+
+✅  [Success] Hash: ******
+Contract Address: ****
+Block: 2381846
+Paid: 0.0382897 ETH (765794 gas * 50 gwei)
+
+✅ Sequence #1 on 20143 | Total Paid: 0.0382897 ETH (765794 gas * avg 50 gwei)
+                                                                                                                                                                
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: ***/20143/run-latest.json
+
+Sensitive values saved to: ***/20143/run-latest.json
+
+node scripts-js/generateTsAbis.js
+📝 Updated TypeScript contract definition file on ../nextjs/contracts/deployedContracts.ts
+```
+
+这样我们的合约代码就部署完成了。
 ## 构建前端
 此刻我们可以构建一下前端代码，在前端代码中，我们会省略所有不重要的内容，只关注我们和链上交互的代码，得益于viem和scffold提供的内置函数，我们可以轻松的完成这一步。
 
@@ -656,58 +766,7 @@ const action = async (bell: boolean) => {
 
 此时我们前端部分已经完成，接下来我们可以将其部署到Monad Devnet进行测试。
 
-## 部署测试
-### 部署前准备
-此时我们就可以使用ScaffoldEth自带的账号控制系统来部署合约了。
 
-如果你之前没有使用过ScaffoldEth，那么你需要先执部署账号初始化命令
-```bash
-yarn account:generate
-```
-
-然后修改`/packages/foundry/.env`中的`ETH_KEYSTORE_ACCOUNT`为`scaffold-eth-custom` （没有可以从.env.example复制）
-
-### 设定网络
-在此之前我们还需要设定网络信息，首先是Foundry的网络信息
-
-```toml
-# packages/foundry/foundry.toml
-# 在 [rpc_endpoints] 下添加
-monadDevnet= "https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"
-```
-
-然后我们修改前端的网络设置，进入目录 `packages/nextjs/utils/scaffold-eth`,新建一个文件为`customChains.ts`。
-```bash
-touch packages/nextjs/utils/scaffold-eth/customChains.ts
-```
-打开编辑
-```typescript
-import { defineChain } from "viem";
-
-// monad devnet chain
-export const monadDevnet = defineChain({
-  id: 20143,
-  name: "Monad Devnet",
-  nativeCurrency: { name: "DMON", symbol: "DMON", decimals: 18 },
-  rpcUrls: {
-    default: {
-      http: ["https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "Monad Explorer",
-      url: "https://explorer.monad-devnet.devnet101.com/",
-    },
-  },
-});
-```
-
-然后修改 `packages/nextjs/scaffold.config.ts`
-```typescript
-//   targetNetworks: [chains.foundry], 改成
-targetNetworks: [monadDevnet],
-```
 
 ### 执行部署命令
 在终端输入 `yarn deploy --network monadDevnet`，将合约部署到测试网，注意部署之前一定要往你的地址里面进行转账。
