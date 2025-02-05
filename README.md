@@ -684,7 +684,7 @@ touch packages/nextjs/utils/scaffold-eth/customChains.ts
 ```typescript
 import { defineChain } from "viem";
 
-// Base chain
+// monad testnet chain
 export const monadDevnet = defineChain({
   id: 20143,
   name: "Monad Devnet",
