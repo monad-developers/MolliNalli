@@ -766,9 +766,5 @@ const action = async (bell: boolean) => {
 
 此时我们前端部分已经完成，接下来我们可以将其部署到Monad Devnet进行测试。
 
-
-
 ### 执行部署命令
-在终端输入 `yarn deploy --network monadDevnet`，将合约部署到测试网，注意部署之前一定要往你的地址里面进行转账。
-
 部署完成后，直接输入`yarn start`即可启动前端。
