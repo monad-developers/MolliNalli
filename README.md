@@ -141,7 +141,7 @@ contract MolliNalli {
             address playerAddr = playersAddr[i];
 
             Player storage player = players[playerAddr];
-            player.isReady = true;
+            // TODO: generate seed
         }
 
         emit GameStarted(playersAddr, seed);
