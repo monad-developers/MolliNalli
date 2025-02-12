@@ -761,6 +761,7 @@ const action = async (bell: boolean) => {
     }
     return result;
   });
+  notification.success("✅ Transaction send success!");
 }
 ```
 
