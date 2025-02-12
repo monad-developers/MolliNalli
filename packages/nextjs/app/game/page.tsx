@@ -8,7 +8,7 @@ import Card from "~~/components/Card";
 import { Address } from "~~/components/scaffold-eth";
 import { useEndInfo, useGameLogic, useGameState, useStart } from "~~/hooks/game/hooks";
 import { useDeployedContractInfo, useScaffoldReadContract, useSelectedNetwork } from "~~/hooks/scaffold-eth/index";
-import { AllowedChainIds } from "~~/utils/scaffold-eth";
+import { AllowedChainIds, notification } from "~~/utils/scaffold-eth";
 
 const getThreeCards = (seed: bigint, startIndex: number) => {
   const TYPE_MASK = BigInt(0b11);
@@ -208,6 +208,7 @@ const GamePageInner = (init: GameInit) => {
       }
       return result;
     });
+    notification.success("✅ Transaction send success!");
   };
 
   const handleJoinGame = async () => {
