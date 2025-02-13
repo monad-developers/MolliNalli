@@ -36,7 +36,7 @@ touch packages/foundry/contracts/MolliNalli.sol
 
 ```solidity
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 contract MolliNalli {
     // 常量设置
