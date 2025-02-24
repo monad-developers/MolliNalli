@@ -83,7 +83,7 @@ Also there's an extra library in there called `AssertBytes` (inside the same nam
 import "bytes/AssertBytes.sol";
 ```
 
-and use the library `AssertBytes` much like they use `Assert` in Truffle's [example](http://truffleframework.com/docs/getting_started/solidity-tests).
+and use the library `AssertBytes` much like they use `Assert` in Truffle's [example](https://trufflesuite.com/docs/truffle/testing/writing-tests-in-solidity).
 
 ## EthPM
 
