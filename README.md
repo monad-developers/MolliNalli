@@ -340,7 +340,7 @@ players[msg.sender] = Player({
 此时我们的游戏已经编写完成！完整文件如下：
 ```solidity
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.27;
 
 enum GameStage {
     NOT_START, // 未开始
