@@ -673,7 +673,7 @@ yarn account:generate
 ```toml
 # packages/foundry/foundry.toml
 # 在 [rpc_endpoints] 下添加
-monadDevnet= "https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"
+monadTestnet= "https://testnet-rpc.monad.xyz"
 ```
 
 然后我们修改前端的网络设置，进入目录 `packages/nextjs/utils/scaffold-eth`,新建一个文件为`customChains.ts`。
@@ -684,20 +684,20 @@ touch packages/nextjs/utils/scaffold-eth/customChains.ts
 ```typescript
 import { defineChain } from "viem";
 
-// monad devnet chain
-export const monadDevnet = defineChain({
-  id: 20143,
-  name: "Monad Devnet",
-  nativeCurrency: { name: "DMON", symbol: "DMON", decimals: 18 },
+// monad testnet chain
+export const monadTestnet = defineChain({
+  id: 10143,
+  name: "Monad Testnet",
+  nativeCurrency: { name: "TMON", symbol: "TMON", decimals: 18 },
   rpcUrls: {
     default: {
-      http: ["https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a"],
+      http: ["https://testnet-rpc.monad.xyz"],
     },
   },
   blockExplorers: {
     default: {
       name: "Monad Explorer",
-      url: "https://explorer.monad-devnet.devnet101.com/",
+      url: "https://testnet.monadexplorer.com/",
     },
   },
 });
@@ -706,10 +706,10 @@ export const monadDevnet = defineChain({
 然后修改 `packages/nextjs/scaffold.config.ts`
 ```typescript
 //   targetNetworks: [chains.foundry], 改成
-targetNetworks: [monadDevnet],
+targetNetworks: [monadTestnet],
 ```
 
 ### 执行部署命令
-在终端输入 `yarn deploy --network monadDevnet`，将合约部署到测试网，注意部署之前一定要往你的地址里面进行转账。
+在终端输入 `yarn deploy --network monadTestnet`，将合约部署到测试网，注意部署之前一定要往你的地址里面进行转账。
 
 部署完成后，直接输入`yarn start`即可启动前端。
