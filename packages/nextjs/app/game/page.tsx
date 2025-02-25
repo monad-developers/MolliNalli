@@ -85,6 +85,7 @@ const GameInitial = ({ address }: { address: string }) => {
   });
 
   // TODO: 合约状态初始化
+  // TODO: Contract state initialization
 
   const [maxAction, stage, player] = data || [];
 
@@ -177,6 +178,7 @@ const GamePageInner = (init: GameInit) => {
   }, [seedInfo, publicClient, address, setup, updateLocalNonce]);
 
   // TODO: 构建action，用来处理用户的决策
+  // TODO: Build action to handle user decisions
 
   const handleJoinGame = async () => {
     await joinGame();

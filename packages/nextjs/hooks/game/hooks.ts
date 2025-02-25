@@ -15,6 +15,7 @@ export const useEndInfo = () => {
   const { data: blockNumber, refetch } = useBlockNumber();
 
   //TODO: 读取链上游戏结束Event
+  //TODO: Read the game end event on the chain
 
   useEffect(() => {
     if (data && data.length > 0 && data[0].args) {
@@ -38,6 +39,7 @@ export const useStart = (cb: (seed: bigint) => void) => {
   const { data: blockNumber, refetch } = useBlockNumber();
 
   //TODO: 读取链上游戏开始Event
+  //TODO: Read the game start event on the chain
 
   useEffect(() => {
     if (data && data.length > 0 && data[0].args.seed) {
