@@ -728,4 +728,3 @@ At this time, the front-end part is completed, and we can deploy it to Monad Tes
 
 ### Deploy the command
 After deployment, simply enter `yarn start` to start the frontend.
-```
