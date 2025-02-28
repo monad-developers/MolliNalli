@@ -22,7 +22,6 @@ See the contract itself for all error codes.
 ```solidity
 
 import "forge-std/Test.sol";
-
 contract TestContract is Test {
     ErrorsTest test;
 
@@ -38,8 +37,9 @@ contract TestContract is Test {
 
 contract ErrorsTest {
     function arithmeticError(uint256 a) public {
-        uint256 a = a - 100;
+    a = a - 100;
     }
+
 }
 ```
 
@@ -63,7 +63,6 @@ struct T {
 
 ```solidity
 import "forge-std/Test.sol";
-
 contract TestContract is Test {
     using stdStorage for StdStorage;
 
